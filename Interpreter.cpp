@@ -77,8 +77,8 @@ int main(int argc,char *argv[]) {
     TreeStandardizer transformer;
     TreeNode* transformedRoot = transformer.standardizeTree(root);
 
-    CSEMachine machine(transformedRoot);  // ✅ Correct object instantiation
-    machine.evaluateTree();               // ✅ No arguments needed
+    CSEMachine machine(transformedRoot);  
+    machine.evaluateTree();               
 	}
 
 	if (st_switch) {
