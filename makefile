@@ -1,5 +1,27 @@
-all :
-	g++ Evaluator.cpp LexicalAnalyzer.cpp Token.cpp TreeNode.cpp Standardizer.cpp CSEMachineCore.cpp CSEMachineBuilder.cpp Parser.cpp -std=c++11 -o myrpal
+# Compiler and flags
+CXX = g++
+CXXFLAGS = -std=c++11
 
-cl :
-	rm -f *.o myrpal
+# Add all folders that contain headers
+INCLUDES = -ILexer -ITokens -INodes -IStandardizer -ICSEMachine -IParser
+
+# Output binary name
+TARGET = myrpal
+
+# Source files
+SRC = Interpreter.cpp \
+      Lexer/LexicalAnalyzer.cpp \
+      Tokens/Token.cpp \
+      Nodes/TreeNode.cpp \
+      Standardizer/Standardizer.cpp \
+      CSEMachine/CSEMachineCore.cpp \
+      CSEMachine/CSEMachineBuilder.cpp \
+      Parser/Parser.cpp
+
+# Build target
+all:
+	$(CXX) $(SRC) $(CXXFLAGS) $(INCLUDES) -o $(TARGET)
+
+# Clean target
+cl:
+	rm -f *.o $(TARGET)
