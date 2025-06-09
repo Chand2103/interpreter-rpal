@@ -14,8 +14,7 @@ SRC = Interpreter.cpp \
       Tokens/Token.cpp \
       Nodes/TreeNode.cpp \
       Standardizer/Standardizer.cpp \
-      CSEMachine/CSEMachineCore.cpp \
-      CSEMachine/CSEMachineBuilder.cpp \
+      CSEMachine/CSEMachine.cpp \
       Parser/Parser.cpp
 
 # Build target
