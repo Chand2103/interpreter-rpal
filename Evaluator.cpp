@@ -16,6 +16,8 @@ using namespace std;
 void preOrder(TreeNode* t, std::string dots);
 void formattedPrint(Token t,std::string dots);
 
+
+
 string openFile(char* fileName){
 	
 	string file_content;
@@ -42,28 +44,71 @@ int main(int argc,char *argv[]) {
 	int i;
 	char* file_name;
 	bool ast_switch = false;
-	bool l_switch = false;
+	bool st_switch = false;
 
 	if(argc == 4){
-		if(((string) argv[1]).compare("-l") == 0)
-			l_switch = true;
+		if(((string) argv[1]).compare("-st") == 0)
+			st_switch = true;
 		if(((string) argv[2]).compare("-ast") == 0)
+			ast_switch = true;
+		if(((string) argv[2]).compare("-st") == 0)
+			st_switch = true;
+		if(((string) argv[1]).compare("-ast") == 0)
 			ast_switch = true;
 		file_name = argv[3];
 	}
 	else if(argc == 3){
 		if(((string) argv[1]).compare("-ast") == 0)
 			ast_switch = true;
+		if(((string) argv[1]).compare("-st") == 0)
+			st_switch = true;
 		file_name = argv[2];
 	}
+	else if(argc == 2){
+		file_name = argv[1];
+	}
+
 
 	string code_string = openFile(file_name);
 
 	if(code_string.size() == 0)
 		return 0;
+
+		if(argc == 2){
+		LexicalAnalyzer lexer(code_string);
+
+		// Create parser with the lexical analyzer
+		Parser parser(&lexer);
+
+		// Parse and build AST
+		parser.parse();
+
+		// Get the resulting AST
+		TreeNode* root = parser.getTree();
+
+		TreeTransformer transformer;
+		TreeNode* transformedRoot = transformer.transformTree(root);
+			
+		CSEMachine machine(transformedRoot);
+		machine.evaluateTree();		
+	}
 	
-	if(l_switch){
-		cout << code_string << endl;
+	if(st_switch){
+		LexicalAnalyzer lexer(code_string);
+
+		// Create parser with the lexical analyzer
+		Parser parser(&lexer);
+
+		// Parse and build AST
+		parser.parse();
+
+		// Get the resulting AST
+		TreeNode* root = parser.getTree();
+
+		TreeTransformer transformer;
+		TreeNode* transformedRoot = transformer.transformTree(root);
+			
+		preOrder(transformedRoot, "");	
 	}
 	
 	if(ast_switch){
@@ -82,10 +127,8 @@ int main(int argc,char *argv[]) {
 		TreeTransformer transformer;
 		TreeNode* transformedRoot = transformer.transformTree(root);
 
-		CSEMachine machine(transformedRoot);
-		machine.evaluateTree();
-	}else{
-		cout << "How to run: p1 -ast location" << endl;
+	}else {
+		// cout << "How to run: p1 -ast location" << endl;
 	}
 	return 0;
 }

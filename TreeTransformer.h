@@ -9,7 +9,7 @@
 #define TREETRANSFORMER_H_
 
 #include "TreeNode.h"
-
+void printNodes(TreeNode* node);
 class TreeTransformer {
 private:
 	TreeNode* createNewNode(TreeNode* t);
