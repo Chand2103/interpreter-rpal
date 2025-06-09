@@ -33,7 +33,7 @@ Parser::~Parser() {
  * Starts the parsing process by getting the first token and invoking expression parsing
  */
 void Parser::parse() {
-    nextToken = lexer->getNextToken();
+    nextToken = lexer->retrieveNextToken();
     processMainExpression();
 }
 
@@ -58,7 +58,7 @@ void Parser::consumeToken(Token token) {
             break;
     }
     
-    nextToken = lexer->getNextToken();
+    nextToken = lexer->retrieveNextToken();
     
     if(nextToken.value == "END" || tokensLeft == false)
         throw "All tokens parsed";
@@ -503,7 +503,7 @@ void Parser::processBasicDeclaration() {
         processDeclaration();
         Token t(")", OPT);
         consumeToken(t);
-    } else if(nextToken.type == ID && (lexer->peekNextToken().value == "," || lexer->peekNextToken().value == "=")) {
+    } else if(nextToken.type == ID && (lexer->previewNextToken().value == "," || lexer->previewNextToken().value == "=")) {
         processVariableList();
         Token t("=", OPT);
         consumeToken(t);
