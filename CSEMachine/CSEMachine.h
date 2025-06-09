@@ -1,9 +1,3 @@
-/*
- * CSEMachine.h
- *
- *  Created on: Dec 9, 2011
- *      Author: saurabh
- */
 
 #ifndef CSEMACHINE_H_
 #define CSEMACHINE_H_
