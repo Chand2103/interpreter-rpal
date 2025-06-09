@@ -1,53 +1,27 @@
-RPAL Interpreter
-This is an interpreter for RPAL (Right-reference Pure Applicative Language). It processes .txt files containing RPAL source code and can output results in several modes, including full evaluation, abstract syntax tree (AST), and standardized tree (ST).
+# RPAL Interpreter
 
-Features
-Parses and evaluates RPAL programs.
+This is an interpreter for the RPAL (Right-reference Programming Algorithmic Language), implemented in C++. It reads source code from input files, parses it into an Abstract Syntax Tree (AST), standardizes the AST into a Standardized Tree (ST), and evaluates the resulting expression.
 
-Generates:
+## Build Instructions
 
-Abstract Syntax Tree (AST)
+To build the interpreter, ensure you have `make` installed. Then run:
 
-Standardized Tree (ST)
-
-Supports combined output modes (AST followed by ST).
-
-Build Instructions
-To compile the project, simply run:
-
+```bash
 make
 
-This will build the myrpal executable.
+./myrpal <filename>
 
-Usage
-Once built, the interpreter can be run from the command line with the following options:
+./myrpal -st <filename>
 
-1. Evaluate the RPAL program
+./myrpal -ast <filename>
+
+./myrpal -st -ast <filename>
+
+./myrpal -ast -st <filename>
+
 ./myrpal t1.txt
 
-Outputs the evaluation result of the RPAL program in t1.txt.
-
-2. Output the Standardized Tree only
-./myrpal -st t1.txt
-
-Prints only the standardized version of the parse tree.
-
-3. Output the Abstract Syntax Tree only
 ./myrpal -ast t1.txt
 
-Prints only the abstract syntax tree.
-
-4. Output both AST and ST
-./myrpal -ast -st t1.txt
-or
 ./myrpal -st -ast t1.txt
 
-Prints the abstract syntax tree first, followed by the standardized tree.
-
-Example
-./myrpal -ast -st examples/factorial.txt
-
-Notes
-Ensure input files are formatted according to RPAL syntax.
-
-No external dependencies are required beyond a standard C++ compiler and make.
