@@ -6,7 +6,7 @@
 
 #include "LexicalAnalyzer.h"
 // #include "RecursiveParser.h"
-#include "TreeTransformer.h"
+#include "Standardizer.h"
 #include "TreeNode.h"
 #include "CSEMachine.h"
 #include "Parser.h"
