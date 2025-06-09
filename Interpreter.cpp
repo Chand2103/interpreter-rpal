@@ -1,11 +1,9 @@
-
 #include <iostream>
 #include <fstream>
 #include <stdio.h>
 #include <string.h>
 
-#include "LexicalAnalyzer.h"
-// #include "RecursiveParser.h"
+#include "Lexer.h"
 #include "Standardizer.h"
 #include "TreeNode.h"
 #include "CSEMachine.h"
@@ -16,10 +14,7 @@ using namespace std;
 void preOrder(TreeNode* t, std::string dots);
 void formattedPrint(Token t,std::string dots);
 
-
-
 string openFile(char* fileName){
-	
 	string file_content;
 	string next_line;
 	ifstream input_file;
@@ -68,22 +63,15 @@ int main(int argc,char *argv[]) {
 		file_name = argv[1];
 	}
 
-
 	string code_string = openFile(file_name);
 
 	if(code_string.size() == 0)
 		return 0;
 
-		if(argc == 2){
-		LexicalAnalyzer lexer(code_string);
-
-		// Create parser with the lexical analyzer
+	if(argc == 2){
+		Lexer lexer(code_string);
 		Parser parser(&lexer);
-
-		// Parse and build AST
 		parser.parse();
-
-		// Get the resulting AST
 		TreeNode* root = parser.getTree();
 
 		TreeTransformer transformer;
@@ -94,15 +82,9 @@ int main(int argc,char *argv[]) {
 	}
 	
 	if(st_switch){
-		LexicalAnalyzer lexer(code_string);
-
-		// Create parser with the lexical analyzer
+		Lexer lexer(code_string);
 		Parser parser(&lexer);
-
-		// Parse and build AST
 		parser.parse();
-
-		// Get the resulting AST
 		TreeNode* root = parser.getTree();
 
 		TreeTransformer transformer;
@@ -112,24 +94,16 @@ int main(int argc,char *argv[]) {
 	}
 	
 	if(ast_switch){
-		LexicalAnalyzer lexer(code_string);
-
-		// Create parser with the lexical analyzer
+		Lexer lexer(code_string);
 		Parser parser(&lexer);
-
-		// Parse and build AST
 		parser.parse();
-
-		// Get the resulting AST
 		TreeNode* root = parser.getTree();
 		preOrder(root, "");
 
 		TreeTransformer transformer;
 		TreeNode* transformedRoot = transformer.transformTree(root);
-
-	}else {
-		// cout << "How to run: p1 -ast location" << endl;
 	}
+
 	return 0;
 }
 
@@ -158,4 +132,3 @@ void formattedPrint(Token t,std::string dots){
 		cout <<dots<<t.value<<endl;
 	}
 }
-

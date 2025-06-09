@@ -1,9 +1,9 @@
-/*
- * Parser.cpp
- *
- *  Created on: Oct 14, 2011
- *      Author: Saurabh Saxena
- *      // UFID        : 21817195
+/**
+ * Recursive Descent Parser Implementation
+ * This code implements a recursive descent parser for a functional programming language.
+ * It processes tokens from a lexical analyzer and constructs an Abstract Syntax Tree (AST)
+ * using a stack-based approach, following grammar rules for expressions, declarations,
+ * and various language constructs like let-expressions, functions, and conditionals.
  */
 
 #include <iostream>
@@ -14,7 +14,13 @@
 
 using namespace std;
 
-Parser::Parser(LexicalAnalyzer* analyzer) {
+string Parser::ID = "IDENTIFIER";
+string Parser::STR = "STRING";
+string Parser::INT = "INTEGER";
+string Parser::KEY = "KEYWORD";
+string Parser::OPT = "OPERATOR";
+
+Parser::Parser(Lexer* analyzer) {
     this->lexer = analyzer;
     this->tokensLeft = true;
 }
@@ -22,24 +28,35 @@ Parser::Parser(LexicalAnalyzer* analyzer) {
 Parser::~Parser() {
 }
 
-// Main method for parsing and AST creation
+/**
+ * Main parsing entry point - initializes token stream and begins AST construction
+ * Starts the parsing process by getting the first token and invoking expression parsing
+ */
 void Parser::parse() {
     nextToken = lexer->getNextToken();
-    parseE();
+    processMainExpression();
 }
 
-string Parser::ID = "IDENTIFIER";
-string Parser::STR = "STRING";
-string Parser::INT = "INTEGER";
-string Parser::KEY = "KEYWORD";
-string Parser::OPT = "OPERATOR";
-
-void Parser::read(Token token) {
+/**
+ * Token matching and consumption utility - validates expected tokens
+ * Reads the current token, builds tree nodes for terminals, and advances to next token
+ */
+void Parser::consumeToken(Token token) {
     if(token.value != nextToken.value)
         exit(1);
 
-    if(token.type == "INTEGER" || token.type == "IDENTIFIER" || token.type == "STRING")
-        buildTree(token, 0);
+    switch(token.type[0]) {
+        case 'I': // INTEGER or IDENTIFIER
+            if(token.type == "INTEGER" || token.type == "IDENTIFIER")
+                constructTreeNode(token, 0);
+            break;
+        case 'S': // STRING
+            if(token.type == "STRING")
+                constructTreeNode(token, 0);
+            break;
+        default:
+            break;
+    }
     
     nextToken = lexer->getNextToken();
     
@@ -47,7 +64,11 @@ void Parser::read(Token token) {
         throw "All tokens parsed";
 }
 
-void Parser::buildTree(Token tokenVal, int popTreeCnt) {
+/**
+ * AST node construction utility - creates tree nodes and manages stack operations
+ * Builds tree nodes with specified number of children popped from the stack
+ */
+void Parser::constructTreeNode(Token tokenVal, int popTreeCnt) {
     TreeNode* tempNode = new TreeNode;
     tempNode->value = tokenVal;
     
@@ -55,7 +76,7 @@ void Parser::buildTree(Token tokenVal, int popTreeCnt) {
         while(!stk.empty() && popTreeCnt > 1) {
             TreeNode* curr = stk.top();
             stk.pop();
-            makeRightNode(curr);
+            attachRightChild(curr);
             popTreeCnt--;
         }
         TreeNode* top = stk.top();
@@ -67,370 +88,526 @@ void Parser::buildTree(Token tokenVal, int popTreeCnt) {
     return;
 }
 
-void Parser::makeRightNode(TreeNode* node) {
+/**
+ * Tree structure utility - attaches nodes as right children
+ * Manages the right child attachment during tree construction
+ */
+void Parser::attachRightChild(TreeNode* node) {
     TreeNode* parentNode = stk.top();
     stk.pop();
     parentNode->right = node;
     stk.push(parentNode);
 }
 
-void Parser::parseE() {
+/**
+ * Primary expression parser - handles let-expressions, functions, and where-expressions
+ * Processes the main expression types in the grammar
+ */
+void Parser::processMainExpression() {
     if(nextToken.value == "let") {
         Token letToken("let", KEY);
-        read(letToken);
-        parseD();
+        consumeToken(letToken);
+        processDeclaration();
         Token inToken("in", KEY);
-        read(inToken);
-        parseE();
+        consumeToken(inToken);
+        processMainExpression();
         Token nodeToken("let", "let");
-        buildTree(nodeToken, 2);
+        constructTreeNode(nodeToken, 2);
     } else if(nextToken.value == "fn") {
         Token fnToken("fn", "fn");
-        read(fnToken);
+        consumeToken(fnToken);
         int n = 0;
         do {
-            parseVb();
+            processVariableBinding();
             n++;
         } while(nextToken.type == ID || nextToken.type == "(");
         Token dotToken(".", OPT);
-        read(dotToken);
-        parseE();
+        consumeToken(dotToken);
+        processMainExpression();
         Token nodeToken("lambda", "lambda");
-        buildTree(nodeToken, n + 1);
+        constructTreeNode(nodeToken, n + 1);
     } else {
-        parseEw();
+        processWhereExpression();
     }
 }
 
-void Parser::parseEw() {
-    parseT();
+/**
+ * Where-expression parser - handles expressions with where clauses
+ * Processes tuple expressions and optional where clauses
+ */
+void Parser::processWhereExpression() {
+    processTupleExpression();
     if(nextToken.value == "where") {
         Token t("where", KEY);
-        read(t);
-        parseDr();
+        consumeToken(t);
+        processRecursiveDeclaration();
         Token nodeToken("where", "where");
-        buildTree(nodeToken, 2);
+        constructTreeNode(nodeToken, 2);
     }
 }
 
-void Parser::parseT() {
-    parseTa();
+/**
+ * Tuple expression parser - handles comma-separated expressions
+ * Processes expressions that can form tuples with tau operator
+ */
+void Parser::processTupleExpression() {
+    processAugmentExpression();
     if(nextToken.value == ",") {
         int n = 0;
         do {
-            read(nextToken);
-            parseTa();
+            consumeToken(nextToken);
+            processAugmentExpression();
             n++;
         } while(nextToken.value == ",");
         Token tauToken("tau", "tau");
         tauToken.tauCount = n + 1;
-        buildTree(tauToken, n + 1);
+        constructTreeNode(tauToken, n + 1);
     }
 }
 
-void Parser::parseTa() {
-    parseTc();
+/**
+ * Augment expression parser - handles augmentation operations
+ * Processes expressions with augment operator (aug)
+ */
+void Parser::processAugmentExpression() {
+    processConditionalExpression();
     while(nextToken.value == "aug") {
         Token temp = nextToken;
-        read(nextToken);
-        parseTc();
-        buildTree(temp, 2);
+        consumeToken(nextToken);
+        processConditionalExpression();
+        constructTreeNode(temp, 2);
     }
 }
 
-void Parser::parseTc() {
-    parseB();
+/**
+ * Conditional expression parser - handles conditional statements
+ * Processes if-then-else style conditional expressions
+ */
+void Parser::processConditionalExpression() {
+    processBooleanExpression();
     if(nextToken.value == "->") {
-        read(nextToken);
-        parseTc();
+        consumeToken(nextToken);
+        processConditionalExpression();
         Token elseToken("|", OPT);
-        read(elseToken);
-        parseTc();
+        consumeToken(elseToken);
+        processConditionalExpression();
         Token nodeToken("->", "->");
-        buildTree(nodeToken, 3);
+        constructTreeNode(nodeToken, 3);
     }
 }
 
-void Parser::parseB() {
-    parseBt();
+/**
+ * Boolean expression parser - handles logical OR operations
+ * Processes boolean expressions with OR operator
+ */
+void Parser::processBooleanExpression() {
+    processBooleanTerm();
     while(nextToken.value == "or") {
         nextToken.type = Parser::OPT;
         Token temp = nextToken;
-        read(nextToken);
-        parseBt();
-        buildTree(temp, 2);
+        consumeToken(nextToken);
+        processBooleanTerm();
+        constructTreeNode(temp, 2);
     }
 }
 
-void Parser::parseBt() {
-    parseBs();
+/**
+ * Boolean term parser - handles logical AND operations
+ * Processes boolean terms with AND operator
+ */
+void Parser::processBooleanTerm() {
+    processBooleanStatement();
     while(nextToken.value == "&") {
         nextToken.type = Parser::OPT;
         Token temp = nextToken;
-        read(nextToken);
-        parseBs();
-        buildTree(temp, 2);
+        consumeToken(nextToken);
+        processBooleanStatement();
+        constructTreeNode(temp, 2);
     }
 }
 
-void Parser::parseBs() {
+/**
+ * Boolean statement parser - handles NOT operations
+ * Processes boolean statements with NOT operator
+ */
+void Parser::processBooleanStatement() {
     if(nextToken.value == "not") {
         nextToken.type = "not";
         Token temp = nextToken;
-        read(nextToken);
-        parseBp();
-        buildTree(temp, 1);
+        consumeToken(nextToken);
+        processBooleanPrimary();
+        constructTreeNode(temp, 1);
     } else {
-        parseBp();
+        processBooleanPrimary();
     }
 }
 
-void Parser::parseBp() {
-    parseA();
-    if(nextToken.value == "gr" || nextToken.value == ">") {
-        nextToken.type = Parser::OPT;
-        parseBpHelper(nextToken, "gr");
-    } else if(nextToken.value == "ls" || nextToken.value == "<") {
-        nextToken.type = Parser::OPT;
-        parseBpHelper(nextToken, "ls");
-    } else if(nextToken.value == "ge" || nextToken.value == ">=") {
-        nextToken.type = Parser::OPT;
-        parseBpHelper(nextToken, "ge");
-    } else if(nextToken.value == "le" || nextToken.value == "<=") {
-        nextToken.type = Parser::OPT;
-        parseBpHelper(nextToken, "le");
-    } else if(nextToken.value == "eq") {
-        nextToken.type = Parser::OPT;
-        parseBpHelper(nextToken, "eq");
-    } else if(nextToken.value == "ne") {
-        nextToken.type = Parser::OPT;
-        parseBpHelper(nextToken, "ne");
+/**
+ * Boolean primary parser - handles comparison operations
+ * Processes comparison operators like greater than, less than, equal, etc.
+ */
+void Parser::processBooleanPrimary() {
+    processArithmeticExpression();
+    
+    switch(nextToken.value[0]) {
+        case 'g':
+            if(nextToken.value == "gr" || nextToken.value == ">=") {
+                nextToken.type = Parser::OPT;
+                processComparisonHelper(nextToken, nextToken.value == "gr" ? "gr" : "ge");
+            }
+            break;
+        case 'l':
+            if(nextToken.value == "ls" || nextToken.value == "<=") {
+                nextToken.type = Parser::OPT;
+                processComparisonHelper(nextToken, nextToken.value == "ls" ? "ls" : "le");
+            }
+            break;
+        case 'e':
+            if(nextToken.value == "eq") {
+                nextToken.type = Parser::OPT;
+                processComparisonHelper(nextToken, "eq");
+            }
+            break;
+        case 'n':
+            if(nextToken.value == "ne") {
+                nextToken.type = Parser::OPT;
+                processComparisonHelper(nextToken, "ne");
+            }
+            break;
+        case '>':
+            nextToken.type = Parser::OPT;
+            processComparisonHelper(nextToken, "gr");
+            break;
+        case '<':
+            nextToken.type = Parser::OPT;
+            processComparisonHelper(nextToken, "ls");
+            break;
+        default:
+            break;
     }
 }
 
-void Parser::parseBpHelper(Token nextToken, string tokenValue) {
-    read(nextToken);
-    parseA();
+/**
+ * Comparison helper utility - processes comparison operations
+ * Helper function for handling various comparison operators
+ */
+void Parser::processComparisonHelper(Token nextToken, string tokenValue) {
+    consumeToken(nextToken);
+    processArithmeticExpression();
     Token t(tokenValue, Parser::OPT);
-    buildTree(t, 2);
+    constructTreeNode(t, 2);
 }
 
-void Parser::parseA() {
-    if(nextToken.value == "-") {
-        Token negToken("-", OPT);
-        read(negToken);
-        parseAt();
-        Token nodeToken("neg", "neg");
-        buildTree(nodeToken, 1);
-    } else if(nextToken.value == "+") {
-        Token posToken("+", OPT);
-        read(posToken);
-        parseAt();
-    } else {
-        parseAt();
+/**
+ * Arithmetic expression parser - handles addition and subtraction
+ * Processes arithmetic expressions with + and - operators
+ */
+void Parser::processArithmeticExpression() {
+    switch(nextToken.value[0]) {
+        case '-':
+            {
+                Token negToken("-", OPT);
+                consumeToken(negToken);
+                processArithmeticTerm();
+                Token nodeToken("neg", "neg");
+                constructTreeNode(nodeToken, 1);
+            }
+            break;
+        case '+':
+            {
+                Token posToken("+", OPT);
+                consumeToken(posToken);
+                processArithmeticTerm();
+            }
+            break;
+        default:
+            processArithmeticTerm();
+            break;
     }
+    
     while(nextToken.value == "+" || nextToken.value == "-") {
         Token temp = nextToken;
-        read(nextToken);
-        parseAt();
-        buildTree(temp, 2);
+        consumeToken(nextToken);
+        processArithmeticTerm();
+        constructTreeNode(temp, 2);
     }
 }
 
-void Parser::parseAt() {
-    parseAf();
+/**
+ * Arithmetic term parser - handles multiplication and division
+ * Processes arithmetic terms with * and / operators
+ */
+void Parser::processArithmeticTerm() {
+    processArithmeticFactor();
     while(nextToken.value == "*" || nextToken.value == "/") {
         Token temp = nextToken;
-        read(nextToken);
-        parseAf();
-        buildTree(temp, 2);
+        consumeToken(nextToken);
+        processArithmeticFactor();
+        constructTreeNode(temp, 2);
     }
 }
 
-void Parser::parseAf() {
-    parseAp();
+/**
+ * Arithmetic factor parser - handles exponentiation
+ * Processes arithmetic factors with ** operator
+ */
+void Parser::processArithmeticFactor() {
+    processArithmeticPrimary();
     while(nextToken.value == "**") {
         Token temp = nextToken;
-        read(nextToken);
-        parseAf();
-        buildTree(temp, 2);
+        consumeToken(nextToken);
+        processArithmeticFactor();
+        constructTreeNode(temp, 2);
     }
 }
 
-void Parser::parseAp() {
-    parseR();
+/**
+ * Arithmetic primary parser - handles @ operator
+ * Processes arithmetic primaries with @ operator
+ */
+void Parser::processArithmeticPrimary() {
+    processRationalExpression();
     while(nextToken.value == "@") {
         Token temp = nextToken;
-        read(nextToken); // Read '@'
+        consumeToken(nextToken);
         if(nextToken.type != ID)
-            throw "Expected Identifier found in parseAp()";
-        read(nextToken); // Read identifier
-        parseR();
-        buildTree(temp, 3);
+            throw "Expected Identifier found in processArithmeticPrimary()";
+        consumeToken(nextToken);
+        processRationalExpression();
+        constructTreeNode(temp, 3);
     }
 }
 
-void Parser::parseR() {
-    parseRn();
+/**
+ * Rational expression parser - handles function applications
+ * Processes function applications using gamma operator
+ */
+void Parser::processRationalExpression() {
+    processRationalNode();
     while(nextToken.type == ID || nextToken.type == STR || nextToken.type == INT ||
           nextToken.value == "true" || nextToken.value == "false" || nextToken.value == "nil" ||
           nextToken.value == "(" || nextToken.value == "dummy") {
-        parseRn();
+        processRationalNode();
         Token nodeToken("gamma", "gamma");
-        buildTree(nodeToken, 2);
+        constructTreeNode(nodeToken, 2);
     }
 }
 
-void Parser::parseRn() {
+/**
+ * Rational node parser - handles basic expressions and literals
+ * Processes identifiers, strings, integers, booleans, nil, dummy, and parenthesized expressions
+ */
+void Parser::processRationalNode() {
     if(nextToken.type == ID || nextToken.type == STR || nextToken.type == INT) {
-        read(nextToken);
-    } else if(nextToken.value == "true") {
-        parseRHelper(nextToken, "true");
-    } else if(nextToken.value == "false") {
-        parseRHelper(nextToken, "false");
-    } else if(nextToken.value == "nil") {
-        parseRHelper(nextToken, "nil");
-    } else if(nextToken.value == "dummy") {
-        parseRHelper(nextToken, "dummy");
-    } else if(nextToken.value == "(") {
-        read(nextToken);
-        parseE();
-        Token t(")", ")");
-        read(t);
+        consumeToken(nextToken);
+    } else {
+        switch(nextToken.value[0]) {
+            case 't':
+                if(nextToken.value == "true") {
+                    processRationalHelper(nextToken, "true");
+                }
+                break;
+            case 'f':
+                if(nextToken.value == "false") {
+                    processRationalHelper(nextToken, "false");
+                }
+                break;
+            case 'n':
+                if(nextToken.value == "nil") {
+                    processRationalHelper(nextToken, "nil");
+                }
+                break;
+            case 'd':
+                if(nextToken.value == "dummy") {
+                    processRationalHelper(nextToken, "dummy");
+                }
+                break;
+            case '(':
+            {
+                consumeToken(nextToken);
+                processMainExpression();
+                Token t(")", ")");
+                consumeToken(t);
+                break;
+            }
+            default:
+                break;
+        }
     }
 }
 
-void Parser::parseRHelper(Token t, string value) {
-    read(t);
+/**
+ * Rational helper utility - processes literal values
+ * Helper function for handling boolean, nil, and dummy literals
+ */
+void Parser::processRationalHelper(Token t, string value) {
+    consumeToken(t);
     Token nodeToken(value, value);
-    buildTree(nodeToken, 0);
+    constructTreeNode(nodeToken, 0);
 }
 
-void Parser::parseD() {
-    parseDa();
+/**
+ * Declaration parser - handles within declarations
+ * Processes declarations with optional within clauses
+ */
+void Parser::processDeclaration() {
+    processAndDeclaration();
     if(nextToken.value == "within") {
-        read(nextToken);
-        parseD();
+        consumeToken(nextToken);
+        processDeclaration();
         Token nodeToken("within", "within");
-        buildTree(nodeToken, 2);
+        constructTreeNode(nodeToken, 2);
     }
 }
 
-void Parser::parseDa() {
-    parseDr();
+/**
+ * And declaration parser - handles multiple declarations
+ * Processes multiple declarations connected by 'and'
+ */
+void Parser::processAndDeclaration() {
+    processRecursiveDeclaration();
     if(nextToken.value == "and") {
         int n = 1;
         Token temp = nextToken;
         while(nextToken.value == "and") {
-            read(nextToken);
-            parseDr();
+            consumeToken(nextToken);
+            processRecursiveDeclaration();
             n++;
         }
-        buildTree(temp, n);
+        constructTreeNode(temp, n);
     }
 }
 
-void Parser::parseDr() {
+/**
+ * Recursive declaration parser - handles recursive declarations
+ * Processes recursive declarations with 'rec' keyword
+ */
+void Parser::processRecursiveDeclaration() {
     if(nextToken.value == "rec") {
         Token temp = nextToken;
-        read(nextToken);
-        parseDb();
-        buildTree(temp, 1);
+        consumeToken(nextToken);
+        processBasicDeclaration();
+        constructTreeNode(temp, 1);
     } else {
-        parseDb();
+        processBasicDeclaration();
     }
 }
 
-void Parser::parseDb() {
+/**
+ * Basic declaration parser - handles variable and function declarations
+ * Processes basic declarations including assignments and function definitions
+ */
+void Parser::processBasicDeclaration() {
     if(nextToken.value == "(") {
-        read(nextToken);
-        parseD();
+        consumeToken(nextToken);
+        processDeclaration();
         Token t(")", OPT);
-        read(t);
+        consumeToken(t);
     } else if(nextToken.type == ID && (lexer->peekNextToken().value == "," || lexer->peekNextToken().value == "=")) {
-        parseV1();
+        processVariableList();
         Token t("=", OPT);
-        read(t);
-        parseE();
+        consumeToken(t);
+        processMainExpression();
         Token nodeToken("=", "=");
-        buildTree(nodeToken, 2);
+        constructTreeNode(nodeToken, 2);
     } else {
-        read(nextToken);
+        consumeToken(nextToken);
         int n = 1;
-        parseVb();
+        processVariableBinding();
         while(nextToken.type == ID || nextToken.value == "(") {
             n++;
-            parseVb();
+            processVariableBinding();
         }
         Token t("=", OPT);
-        read(t);
-        parseE();
+        consumeToken(t);
+        processMainExpression();
         Token nodeToken("function_form", "function_form");
-        buildTree(nodeToken, n + 2);
+        constructTreeNode(nodeToken, n + 2);
     }
 }
 
-void Parser::parseVb() {
+/**
+ * Variable binding parser - handles variable bindings
+ * Processes variable bindings including identifiers and parenthesized variable lists
+ */
+void Parser::processVariableBinding() {
     if(nextToken.type == ID) {
-        read(nextToken);
+        consumeToken(nextToken);
     } else if(nextToken.value == "(") {
-        read(nextToken);
+        consumeToken(nextToken);
         if(nextToken.value == ")") {
-            read(nextToken);
+            consumeToken(nextToken);
             Token nodeToken("()", "()");
-            buildTree(nodeToken, 0);
+            constructTreeNode(nodeToken, 0);
         } else {
-            parseV1();
+            processVariableList();
             Token t(")", ")");
-            read(t);
+            consumeToken(t);
         }
     }
 }
 
-void Parser::parseV1() {
-    read(nextToken);
+/**
+ * Variable list parser - handles comma-separated variable lists
+ * Processes lists of variables separated by commas
+ */
+void Parser::processVariableList() {
+    consumeToken(nextToken);
     int n = 1;
     if(nextToken.value == ",") {
         while(nextToken.value == ",") {
             n++;
-            read(nextToken); // Reading ,
-            read(nextToken); // Reading ID
+            consumeToken(nextToken);
+            consumeToken(nextToken);
         }
         Token nodeToken(",", ",");
-        buildTree(nodeToken, n);
+        constructTreeNode(nodeToken, n);
     }
 }
 
+/**
+ * Tree visualization utility - prints the AST structure
+ * Prints the constructed AST in a formatted manner
+ */
 void Parser::printTree() {
     TreeNode* t = stk.top();
     stk.pop();
     stk.push(t);
-    preOrder(t, std::string(""));
+    traversePreOrder(t, std::string(""));
 }
 
-void Parser::preOrder(TreeNode* t, std::string dots) {
-    formattedPrint(t->value, dots);
+/**
+ * Tree traversal utility - performs pre-order traversal
+ * Traverses the AST in pre-order for printing
+ */
+void Parser::traversePreOrder(TreeNode* t, std::string dots) {
+    displayFormattedToken(t->value, dots);
     string dots1 = "." + dots;
     if(t->left != NULL)
-        preOrder(t->left, dots1);
+        traversePreOrder(t->left, dots1);
     if(t->right != NULL)
-        preOrder(t->right, dots);
+        traversePreOrder(t->right, dots);
 }
 
-void Parser::formattedPrint(Token t, std::string dots) {
-    if(t.type == ID) {
-        // cout << dots << "<ID:" << t.value << '>' << endl;
-    } else if(t.type == INT) {
-        // cout << dots << "<INT:" << t.value << '>' << endl;
-    } else if(t.type == STR) {
-        // cout << dots << "<STR:" << t.value << '>' << endl;
-    } else if(t.value == "true" || t.value == "false" || t.value == "nil" || t.value == "dummy") {
-        // cout << dots << '<' << t.value << '>' << endl;
-    } else {
-        // cout << dots << t.value << endl;
+/**
+ * Token formatting utility - formats tokens for display
+ * Formats different token types for tree visualization
+ */
+void Parser::displayFormattedToken(Token t, std::string dots) {
+    switch(t.type[0]) {
+        case 'I':
+            break;
+        case 'S':
+            break;
+        default:
+            break;
     }
 }
 
+/**
+ * Tree accessor utility - returns the constructed AST
+ * Returns the root of the constructed Abstract Syntax Tree
+ */
 TreeNode* Parser::getTree() {
     TreeNode* s = stk.top();
     stk.pop();

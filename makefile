@@ -10,7 +10,7 @@ TARGET = myrpal
 
 # Source files
 SRC = Interpreter.cpp \
-      Lexer/LexicalAnalyzer.cpp \
+      Lexer/Lexer.cpp \
       Tokens/Token.cpp \
       Nodes/TreeNode.cpp \
       Standardizer/Standardizer.cpp \

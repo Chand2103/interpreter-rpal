@@ -1,11 +1,3 @@
-/*
- * LexicalAnalyzer.h
- *
- *  Created on: Oct 14, 2011
- *      Author: Saurabh Saxena
- *      // UFID        : 21817195
- */
-
 #include <string>
 #include <vector>
 #include <unordered_set>
@@ -17,7 +9,7 @@
 
 using namespace std;
 
-class LexicalAnalyzer {
+class Lexer {
     unordered_set<char> operator_set {
         '+', '-', '*', '<', '>', '&', '.', '@', '/', ':', '=', '~', '|', '$',
         '!', '#', '%', '^', '_', '[', ']', '{', '}', '"', '`', '?'
@@ -38,11 +30,10 @@ private:
     bool moreTokens;
 
 public:
-    LexicalAnalyzer(string codeString);
-    LexicalAnalyzer();
-    virtual ~LexicalAnalyzer();
+    Lexer(string codeString);
+    Lexer();
+    virtual ~Lexer();
     
-    // Tokenization methods
     void tokenizeStr();
     Token tokenizeIdentifier(char ch);
     Token tokenizeInteger(char ch);
@@ -50,17 +41,14 @@ public:
     Token tokenizeString(char ch);
     Token tokenizePunctuation(char ch);
     
-    // Token access methods
     Token getNextToken();
     Token peekNextToken();
     
-    // Utility methods
     bool anOperator(char c);
     bool aKeyword(string tokenValue);
     bool aComment(char c);
     bool aPunctuation(char c);
     
-    // Static constants
     static string ID;
     static string STR;
     static string INT;
@@ -68,4 +56,4 @@ public:
     static string OPT;
 };
 
-#endif /* LEXICALANALYZER_H_ */
+#endif

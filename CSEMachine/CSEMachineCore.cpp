@@ -1,7 +1,7 @@
 // CSEMachineCore.cpp
 
 #include "CSEMachine.h"
-#include "LexicalAnalyzer.h"
+#include "Lexer.h"
 #include <iostream>
 #include <math.h>
 using namespace std;
@@ -41,7 +41,7 @@ void CSEMachine::evaluateTree(){
 
 Token CSEMachine::applyOperator(Token firstToken, Token secondToken, Token currToken){
     string op = currToken.value;
-    if (firstToken.type == LexicalAnalyzer::INT) {
+    if (firstToken.type == Lexer::INT) {
         int a = stoi(firstToken.value), b = stoi(secondToken.value), res;
         if (op == "*") res = a * b;
         else if (op == "+") res = a + b;
@@ -54,8 +54,8 @@ Token CSEMachine::applyOperator(Token firstToken, Token secondToken, Token currT
         else if (op == "le") return a <= b ? Token("true","true") : Token("false","false");
         else if (op == "eq") return a == b ? Token("true","true") : Token("false","false");
         else if (op == "ne") return a != b ? Token("true","true") : Token("false","false");
-        return Token(to_string(res), LexicalAnalyzer::INT);
-    } else if (firstToken.type == LexicalAnalyzer::STR) {
+        return Token(to_string(res), Lexer::INT);
+    } else if (firstToken.type == Lexer::STR) {
         if (op == "eq") return firstToken.value == secondToken.value ? Token("true","true") : Token("false","false");
         if (op == "ne") return firstToken.value != secondToken.value ? Token("true","true") : Token("false","false");
     } else if (firstToken.type == "true" || firstToken.type == "false") {
@@ -67,50 +67,35 @@ Token CSEMachine::applyOperator(Token firstToken, Token secondToken, Token currT
     return Token("", "");
 }
 
-void CSEMachine::processCurrentToken(Token &currToken,stack<Token> &controlStack, stack<Token> &executionStack){
-	//cout<<"Control stack top: "<<currToken.type <<" Exe top: "<<executionStack.top().type<< endl;
-	//cout<<"Control stack top: "<<currToken.value <<" Exe top: "<<executionStack.top().value<< endl;
-	if(currToken.type == LexicalAnalyzer::OPT){
-		Token firstToken = executionStack.top();
-		executionStack.pop();
-		Token secondToken = executionStack.top();
-		executionStack.pop();
-		Token resultToken = applyOperator(firstToken, secondToken, currToken);
-		executionStack.push(resultToken);
-	}else if(currToken.type == "neg"){
-		Token firstToken = executionStack.top();
-		executionStack.pop();
-		int paramVal = atoi(firstToken.value.c_str());
-		paramVal = -paramVal;
-		Token newToken(intToString(paramVal), LexicalAnalyzer::INT);
-		executionStack.push(newToken);
-	}else if(currToken.type =="not"){
-		Token firstToken = executionStack.top();
-		executionStack.pop();
-		if(firstToken.value == "true"){
-			executionStack.push(Token("false","false"));
-		}else{
-			executionStack.push(Token("true","true"));
-		}
-	//}else if(currToken.type == LexicalAnalyzer::ID && isParamter(currToken)){
-	}else if(currToken.type == LexicalAnalyzer::ID && isParamter(currToken)){
-		string varName = currToken.value;
-		int temp = currEnv;
-		//cout <<  "Current env "<<temp<< endl;
-		pair<int,string> keyPair(temp,varName);
-		map<key_pair,Token>::iterator it = paramMap.find(keyPair);
-		while(paramMap.end() == it && temp>=0){
-			temp = envMap[temp];
-			keyPair.first = temp;
-			//cout << "Temp: "<<temp;
-			it = paramMap.find(keyPair);
-		}
-		if(paramMap.end() != it){
-			Token paramValToken = it->second;
-			//paramMap.erase(it);
-			executionStack.push(paramValToken);
-		}
-	}else if(currToken.type == "gamma"){
+void CSEMachine::processCurrentToken(Token &currToken, stack<Token> &controlStack, stack<Token> &executionStack){
+    if(currToken.type == Lexer::OPT){
+        Token firstToken = executionStack.top(); executionStack.pop();
+        Token secondToken = executionStack.top(); executionStack.pop();
+        Token resultToken = applyOperator(firstToken, secondToken, currToken);
+        executionStack.push(resultToken);
+    } else if(currToken.type == "neg") {
+        Token firstToken = executionStack.top(); executionStack.pop();
+        int paramVal = atoi(firstToken.value.c_str());
+        paramVal = -paramVal;
+        Token newToken(intToString(paramVal), Lexer::INT);
+        executionStack.push(newToken);
+    } else if(currToken.type =="not") {
+        Token firstToken = executionStack.top(); executionStack.pop();
+        executionStack.push(firstToken.value == "true" ? Token("false","false") : Token("true","true"));
+    } else if(currToken.type == Lexer::ID && isParamter(currToken)) {
+        string varName = currToken.value;
+        int temp = currEnv;
+        pair<int,string> keyPair(temp,varName);
+        auto it = paramMap.find(keyPair);
+        while(it == paramMap.end() && temp >= 0) {
+            temp = envMap[temp];
+            keyPair.first = temp;
+            it = paramMap.find(keyPair);
+        }
+        if(it != paramMap.end()) {
+            executionStack.push(it->second);
+        }
+    }else if(currToken.type == "gamma"){
 		Token topExeToken = executionStack.top();
 		executionStack.pop();
 		if(topExeToken.type == "lambdaClosure"){
@@ -192,14 +177,14 @@ void CSEMachine::processCurrentToken(Token &currToken,stack<Token> &controlStack
 			string concatValue = firstToken.value.substr(1,firstToken.value.size()-2)+secondToken.value.substr(1,secondToken.value.size()-2);
 			concatValue = "'"+concatValue+"'";
 			//cout <<"Concat value "<<concatValue<<endl;
-			Token newToken(concatValue,LexicalAnalyzer::STR);
+			Token newToken(concatValue,Lexer::STR);
 			executionStack.push(newToken);
 			//Removing extra gamma
 			controlStack.pop();
 		}else if(topExeToken.value == "ItoS" || topExeToken.value == "itos"){
 			Token firstToken = executionStack.top();
 			executionStack.pop();
-			firstToken.type = LexicalAnalyzer::STR;
+			firstToken.type = Lexer::STR;
 			firstToken.value = "'"+firstToken.value+"'";
 			executionStack.push(firstToken);
 			//Removing extra gamma
@@ -210,7 +195,7 @@ void CSEMachine::processCurrentToken(Token &currToken,stack<Token> &controlStack
 			Token t = executionStack.top();
 			executionStack.pop();
 			if(t.isTuple == false){
-				if(t.type== LexicalAnalyzer::STR){
+				if(t.type== Lexer::STR){
 					string tempStr =unescape(t.value.substr(1,t.value.size()-2));
 					cout << tempStr;
 					if(tempStr[tempStr.size()-1] == '\n')
@@ -232,14 +217,14 @@ void CSEMachine::processCurrentToken(Token &currToken,stack<Token> &controlStack
 					}else{
 						cout<<", ";
 					}
-					if(tupleVector[i].type == LexicalAnalyzer::STR){
+					if(tupleVector[i].type == Lexer::STR){
 						cout<< unescape(tupleVector[i].value.substr(1,tupleVector[i].value.size()-2));
 					}else if(tupleVector[i].isTuple == true ){
 						cout<<"Inside else if"<<endl;
 						vector<Token> innerTuple = tupleVector[i].tuple;
 						cout << "Size" << innerTuple.size()<<endl;
 						if(innerTuple.size() == 1){
-							if(innerTuple[0].type == LexicalAnalyzer::STR)
+							if(innerTuple[0].type == Lexer::STR)
 								cout<< unescape(innerTuple[0].value.substr(1,innerTuple[0].value.size()-2));
 						}
 					}else{
@@ -254,7 +239,7 @@ void CSEMachine::processCurrentToken(Token &currToken,stack<Token> &controlStack
 		}else if(topExeToken.value == "Isinteger"){
 			Token t = executionStack.top();
 			executionStack.pop();
-			executionStack.push(t.type==LexicalAnalyzer::INT ? Token("true","true"):Token("false","false"));
+			executionStack.push(t.type==Lexer::INT ? Token("true","true"):Token("false","false"));
 		}else if(topExeToken.value == "Istruthvalue"){
 			Token t = executionStack.top();
 			executionStack.pop();
@@ -262,7 +247,7 @@ void CSEMachine::processCurrentToken(Token &currToken,stack<Token> &controlStack
 		}else if(topExeToken.value == "Isstring"){
 			Token t = executionStack.top();
 			executionStack.pop();
-			executionStack.push(t.type==LexicalAnalyzer::STR ? Token("true","true"):Token("false","false"));
+			executionStack.push(t.type==Lexer::STR ? Token("true","true"):Token("false","false"));
 		}else if(topExeToken.value == "Istuple"){
 			//cout<<"Inside is tuple"<<endl;
 			Token t = executionStack.top();
@@ -280,7 +265,7 @@ void CSEMachine::processCurrentToken(Token &currToken,stack<Token> &controlStack
 			//cout<<"Inside Order "<<endl;
 			Token t = executionStack.top();
 			executionStack.pop();
-			executionStack.push(Token(intToString(t.tuple.size()),LexicalAnalyzer::INT));
+			executionStack.push(Token(intToString(t.tuple.size()),Lexer::INT));
 		}else if(topExeToken.value == "Null"){
 			//cout<<"Inside Null "<<endl;
 			Token t = executionStack.top();
@@ -289,7 +274,7 @@ void CSEMachine::processCurrentToken(Token &currToken,stack<Token> &controlStack
 		}else if(topExeToken.isTuple == true){
 			Token t = executionStack.top();
 			executionStack.pop();
-			if(t.type == LexicalAnalyzer::INT){
+			if(t.type == Lexer::INT){
 				int indx = atoi(t.value.c_str());
 				indx -=1;
 				executionStack.push(topExeToken.tuple[indx]);

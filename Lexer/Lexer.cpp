@@ -1,37 +1,28 @@
-/*
- * LexicalAnalyzer.cpp
- *
- *  Created on: Oct 14, 2011
- *      Author: saurabh Saurabh
- *      // UFID        : 21817195
- */
 #include <iostream>
-#include "LexicalAnalyzer.h"
+#include "Lexer.h"
 #include "Token.h"
 #include <string>
 #include <cstdlib>
 
 using namespace std;
 
-LexicalAnalyzer::LexicalAnalyzer(string inputString) {
+Lexer::Lexer(string inputString) {
     this->inputString = inputString;
     this->size = inputString.size();
     this->presentVal = 0;
     this->currPtr = 0;
     this->tokensLeft = true;
     this->moreTokens = true;
-    // Automatically tokenize the input string
     tokenizeStr();
 }
 
-LexicalAnalyzer::~LexicalAnalyzer() {
+Lexer::~Lexer() {
 }
 
-LexicalAnalyzer::LexicalAnalyzer() {
+Lexer::Lexer() {
 }
 
-// Method to tokenize the string and generate tokens
-void LexicalAnalyzer::tokenizeStr() {
+void Lexer::tokenizeStr() {
     while(presentVal < size) {
         Token token;
         
@@ -54,33 +45,28 @@ void LexicalAnalyzer::tokenizeStr() {
     }
 }
 
-// Method to check the char is among the rpal keyword set
-bool LexicalAnalyzer::aKeyword(string st) {
+bool Lexer::aKeyword(string st) {
     return keyword_set.find(st) != keyword_set.end();
 }
 
-// Method to check the char is among the rpal operator set
-bool LexicalAnalyzer::anOperator(char c) {
+bool Lexer::anOperator(char c) {
     return operator_set.find(c) != operator_set.end();
 }
 
-// Method to check the char is comment or tab or new line
-bool LexicalAnalyzer::aComment(char c) {
+bool Lexer::aComment(char c) {
     if(c == '\\' || c == '\'' || c == 't' || c == 'n')
         return true;
     return false;
 }
 
-// Method to check the char is punctuation or alpha or digit or operator
-bool LexicalAnalyzer::aPunctuation(char c) {
+bool Lexer::aPunctuation(char c) {
     if(c == '(' || c == ')' || c == ';' || c == ',' || c == ' ' || 
        isalpha(c) || isdigit(c) || anOperator(c))
         return true;
     return false;
 }
 
-// Method for creating token if the char is identifier
-Token LexicalAnalyzer::tokenizeIdentifier(char c) {
+Token Lexer::tokenizeIdentifier(char c) {
     Token t;
     t.value += c;
     while(true) {
@@ -104,8 +90,7 @@ Token LexicalAnalyzer::tokenizeIdentifier(char c) {
     return t;
 }
 
-// Method for creating token if the char is string start
-Token LexicalAnalyzer::tokenizeString(char c) {
+Token Lexer::tokenizeString(char c) {
     Token t;
     t.value = c;
     while(true) {
@@ -130,8 +115,7 @@ Token LexicalAnalyzer::tokenizeString(char c) {
     return t;
 }
 
-// Method for creating token if the char is operator
-Token LexicalAnalyzer::tokenizeOperator(char c) {
+Token Lexer::tokenizeOperator(char c) {
     Token t;
 
     if(c == '/') {
@@ -169,8 +153,7 @@ Token LexicalAnalyzer::tokenizeOperator(char c) {
     return t;
 }
 
-// Method for creating token if the char is integer
-Token LexicalAnalyzer::tokenizeInteger(char c) {
+Token Lexer::tokenizeInteger(char c) {
     Token t;
     t.value += c;
     while(true) {
@@ -190,16 +173,14 @@ Token LexicalAnalyzer::tokenizeInteger(char c) {
     return t;
 }
 
-// Method for creating token if the char is punctuation
-Token LexicalAnalyzer::tokenizePunctuation(char c) {
+Token Lexer::tokenizePunctuation(char c) {
     Token t;
     t.type = c;
     t.value = c;
     return t;
 }
 
-// Method to get the next token by moving pointer ahead
-Token LexicalAnalyzer::getNextToken() {
+Token Lexer::getNextToken() {
     Token t;
     if(currPtr < tokens.size())
         t = tokens[currPtr++];
@@ -208,14 +189,13 @@ Token LexicalAnalyzer::getNextToken() {
     return t;
 }
 
-// Method to peek the token from the vector
-Token LexicalAnalyzer::peekNextToken() {
+Token Lexer::peekNextToken() {
     Token t = tokens[currPtr];
     return t;
 }
 
-string LexicalAnalyzer::ID = "IDENTIFIER";
-string LexicalAnalyzer::STR = "STRING";
-string LexicalAnalyzer::INT = "INTEGER";
-string LexicalAnalyzer::KEY = "KEYWORD";
-string LexicalAnalyzer::OPT = "OPERATOR";
+string Lexer::ID = "IDENTIFIER";
+string Lexer::STR = "STRING";
+string Lexer::INT = "INTEGER";
+string Lexer::KEY = "KEYWORD";
+string Lexer::OPT = "OPERATOR";

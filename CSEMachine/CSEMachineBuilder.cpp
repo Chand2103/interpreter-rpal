@@ -2,7 +2,8 @@
 #include <algorithm>
 #include <iostream>
 #include "CSEMachine.h"
-#include "LexicalAnalyzer.h"
+#include "Lexer.h"
+
 using namespace std;
 
 void CSEMachine::createControlStructures(TreeNode* root) {
@@ -63,7 +64,10 @@ vector<string> CSEMachine::split(string input, char delim) {
 }
 
 bool CSEMachine::notFunction(string id) {
-    static const vector<string> builtins = {"Stem","stem","Stern","stern","Print","print","Conc","conc","Istuple","Isinteger","Isfunction","Istruthvalue", "Isdummy","Order","Null"};
+    static const vector<string> builtins = {
+        "Stem", "stem", "Stern", "stern", "Print", "print", "Conc", "conc",
+        "Istuple", "Isinteger", "Isfunction", "Istruthvalue", "Isdummy", "Order", "Null"
+    };
     return find(builtins.begin(), builtins.end(), id) == builtins.end();
 }
 
@@ -103,7 +107,7 @@ void CSEMachine::printTuple(Token t) {
     cout << "(";
     for (size_t i = 0; i < v.size(); i++) {
         if (i > 0) cout << ", ";
-        if (v[i].type == LexicalAnalyzer::STR)
+        if (v[i].type == Lexer::STR)
             cout << unescape(v[i].value.substr(1, v[i].value.size() - 2));
         else if (v[i].type == "tuple")
             printTuple(v[i]);
