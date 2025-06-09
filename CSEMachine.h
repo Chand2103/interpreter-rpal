@@ -24,6 +24,7 @@ typedef pair<int,string> keyPair;
 
 class CSEMachine {
 public:
+	typedef std::pair<int, std::string> key_pair;
 	CSEMachine();
 	CSEMachine(TreeNode* input);
 	virtual ~CSEMachine();

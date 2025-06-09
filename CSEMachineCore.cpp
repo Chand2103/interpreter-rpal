@@ -1,75 +1,70 @@
-/*
- * CSEMachine.cpp
- *
- *  Created on: Dec 9, 2011
- *      Author: saurabh
- */
+// CSEMachineCore.cpp
 
 #include "CSEMachine.h"
- #include "LexicalAnalyzer.h"
-#include "TreeNode.h"
-#include <string>
-#include <list>
-#include <vector>
-#include <queue>
-#include <sstream>
+#include "LexicalAnalyzer.h"
 #include <iostream>
-#include <stack>
-#include <cmath>
-#include <utility>
+#include <math.h>
+using namespace std;
 
-typedef pair<int,string> key_pair;
+CSEMachine::CSEMachine() {}
 
-CSEMachine::CSEMachine() {
-	// TODO Auto-generated constructor stub
-
-}
-
-CSEMachine::~CSEMachine() {
-	// TODO Auto-generated destructor stub
-}
-
+CSEMachine::~CSEMachine() {}
 
 CSEMachine::CSEMachine(TreeNode* input){
-	this->inputTree = input;
-	this->deltaCounter = 0;
-	this->currDeltaNum = 0;
-	this->envCounter = 0;
-	this->envStack.push(0);
-	this->currEnv = 0;
-	this->envMap = map<int,int>();
-	this->printCalled = false;
+    this->inputTree = input;
+    this->deltaCounter = 0;
+    this->currDeltaNum = 0;
+    this->envCounter = 0;
+    this->envStack.push(0);
+    this->currEnv = 0;
+    this->envMap = map<int,int>();
+    this->printCalled = false;
 }
 
 void CSEMachine::evaluateTree(){
-	createControlStructures(this->inputTree);
-	Token envToken("env",envCounter);
-	stack<Token> controlStack;
-	stack<Token> executionStack;
-	controlStack.push(envToken);
-	//Making parent of env 0 , -1
-	envMap[0] = -1;
+    createControlStructures(this->inputTree);
+    Token envToken("env",envCounter);
+    stack<Token> controlStack;
+    stack<Token> executionStack;
+    controlStack.push(envToken);
+    envMap[0] = -1;
+    for(auto& token : deltaMap[0]) controlStack.push(token);
+    executionStack.push(envToken);
+    int whileCount = 0;
+    while(controlStack.size() != 1){
+        Token currToken = controlStack.top(); controlStack.pop();
+        processCurrentToken(currToken, controlStack, executionStack);
+        if(whileCount++ > 5000) break;
+    }
+    if(!printCalled) cout << endl;
+}
 
-	vector<Token> delta0 = deltaMap[0];
-	for(int i=0;i<delta0.size();i++){
-		controlStack.push(delta0[i]);
-	}
-	executionStack.push(envToken);
-	int whileCount = 0;
-	while(controlStack.size() != 1){
-		Token currToken = controlStack.top();
-		controlStack.pop();
-		processCurrentToken(currToken,controlStack,executionStack);
-		//cout<<"Inside while: "<<controlStack.size()<< endl;
-		if(whileCount > 5000){
-			break;
-		}
-		whileCount++;
-	}
-	if(printCalled == false)
-		cout<<endl;
-	//cout<<endl;
-	//cout<<"Execution result: "<<executionStack.top().value<<endl;
+Token CSEMachine::applyOperator(Token firstToken, Token secondToken, Token currToken){
+    string op = currToken.value;
+    if (firstToken.type == LexicalAnalyzer::INT) {
+        int a = stoi(firstToken.value), b = stoi(secondToken.value), res;
+        if (op == "*") res = a * b;
+        else if (op == "+") res = a + b;
+        else if (op == "-") res = a - b;
+        else if (op == "/") res = a / b;
+        else if (op == "**") res = pow(a, b);
+        else if (op == "gr") return a > b ? Token("true","true") : Token("false","false");
+        else if (op == "ls") return a < b ? Token("true","true") : Token("false","false");
+        else if (op == "ge") return a >= b ? Token("true","true") : Token("false","false");
+        else if (op == "le") return a <= b ? Token("true","true") : Token("false","false");
+        else if (op == "eq") return a == b ? Token("true","true") : Token("false","false");
+        else if (op == "ne") return a != b ? Token("true","true") : Token("false","false");
+        return Token(to_string(res), LexicalAnalyzer::INT);
+    } else if (firstToken.type == LexicalAnalyzer::STR) {
+        if (op == "eq") return firstToken.value == secondToken.value ? Token("true","true") : Token("false","false");
+        if (op == "ne") return firstToken.value != secondToken.value ? Token("true","true") : Token("false","false");
+    } else if (firstToken.type == "true" || firstToken.type == "false") {
+        if (op == "or") return (firstToken.type == "true" || secondToken.type == "true") ? Token("true","true") : Token("false","false");
+        if (op == "&") return (firstToken.type == "true" && secondToken.type == "true") ? Token("true","true") : Token("false","false");
+        if (op == "eq") return (firstToken.type == secondToken.type) ? Token("true","true") : Token("false","false");
+        if (op == "ne") return (firstToken.type != secondToken.type) ? Token("true","true") : Token("false","false");
+    }
+    return Token("", "");
 }
 
 void CSEMachine::processCurrentToken(Token &currToken,stack<Token> &controlStack, stack<Token> &executionStack){
@@ -366,230 +361,4 @@ void CSEMachine::processCurrentToken(Token &currToken,stack<Token> &controlStack
 	}else{
 		executionStack.push(currToken);
 	}
-}
-
-
-Token CSEMachine::applyOperator(Token firstToken, Token secondToken, Token currToken){
-	string tokenVal = currToken.value;
-	//cout <<"Operator: "<< currToken.value<< endl;
-	if(firstToken.type == LexicalAnalyzer::INT){
-		int firstVal = atoi(firstToken.value.c_str());
-		int secondVal = atoi(secondToken.value.c_str());
-		//cout<< firstVal << " "<< secondVal<< endl;
-		int resultVal = 0;
-		if(tokenVal == "*"){
-			resultVal = firstVal*secondVal;
-			return Token(intToString(resultVal),firstToken.type);
-		}else if(tokenVal == "+"){
-			resultVal = firstVal+secondVal;
-			return Token(intToString(resultVal),firstToken.type);
-		}else if(tokenVal == "-"){
-			resultVal = firstVal-secondVal;
-			return Token(intToString(resultVal),firstToken.type);
-		}else if(tokenVal == "/"){
-			resultVal = firstVal/secondVal;
-			return Token(intToString(resultVal),firstToken.type);
-		}else if(tokenVal == "**"){
-			resultVal = pow(firstVal,secondVal);
-			return Token(intToString(resultVal),firstToken.type);
-		}else if(tokenVal == "gr"){
-			return (firstVal > secondVal ? Token("true","true"):Token("false","false"));
-		}else if(tokenVal == "ls"){
-			//cout << "Inside less than" <<endl;
-			return (firstVal < secondVal ? Token("true","true"):Token("false","false"));
-		}else if(tokenVal == "ge"){
-			return (firstVal >= secondVal ? Token("true","true"):Token("false","false"));
-		}else if(tokenVal == "le"){
-			return (firstVal <= secondVal ? Token("true","true"):Token("false","false"));
-		}else if(tokenVal == "eq"){
-			return (firstVal == secondVal ? Token("true","true"):Token("false","false"));
-		}else if(tokenVal == "ne"){
-			return (firstVal != secondVal ? Token("true","true"):Token("false","false"));
-		}
-	}else if(firstToken.type == LexicalAnalyzer::STR){ // String operators
-		if(tokenVal == "eq"){
-			return (firstToken.value == secondToken.value ? Token("true","true"):Token("false","false"));
-		}else if(tokenVal == "ne"){
-			return (firstToken.value != secondToken.value ? Token("true","true"):Token("false","false"));
-		}
-	}else if(firstToken.type == "true" || firstToken.type == "false"){ // Boolean operators
-		//cout<< "Inside boolean field"<<endl;
-		if(tokenVal == "or"){
-			//cout << "Inside or "<<firstToken.type << " "<<secondToken.type<<endl;
-			return ((firstToken.type=="true" || secondToken.type=="true")? Token("true","true"): Token("false","false"));
-		}else if(tokenVal == "&"){
-			return ((firstToken.type=="true" && secondToken.type=="true")? Token("true","true"): Token("false","false"));
-		}else if(tokenVal == "eq"){
-			return ((firstToken.type==secondToken.type)? Token("true","true"): Token("false","false"));
-		}else if(tokenVal == "ne"){
-			return ((firstToken.type != secondToken.type)? Token("true","true"): Token("false","false"));
-		}
-	}
-	return Token("","");
-}
-void CSEMachine::createControlStructures(TreeNode* root){
-	//Read the next preorder node from tree, how about saving all the nodes in a queue in one go.
-	//Check if it is lambda or not
-	//if it is lambda create a lambda closure and put it in stack, insert the next next preorder node in a queue.
-	//if not then put the token in current delta.
-	//if no more preorder elements start a new tree with elements present in the stack, insert the delta in the stack with the
-	//Appropriate number.
-	pendingDeltaQueue.push(root);
-	while(!pendingDeltaQueue.empty()){
-		vector<Token> currentDelta;
-		TreeNode* currStartNode = pendingDeltaQueue.front();
-		pendingDeltaQueue.pop();
-		preOrderTraversal(currStartNode, currentDelta);
-		deltaMap[currDeltaNum++] = currentDelta;
-	}
-	for(int j=0;j<deltaMap.size();j++){
-		//cout <<"Size for map "<<j<<" "<<deltaMap[j].size()<<endl;
-		for(int i=0;i<deltaMap[j].size();i++){
-				//cout << deltaMap[j][i].type<<",";
-			}
-		//cout << endl;
-	}
-
-}
-
-
-void CSEMachine::preOrderTraversal(TreeNode* root, vector<Token> &currentDelta){
-	if(root->value.type == "lambda"){
-		if(root->left->value.value != ","){
-			Token lambdaClosure("lambdaClosure",root->left->value.value, ++deltaCounter);
-			currentDelta.push_back(lambdaClosure);
-		}else{
-			TreeNode* commaChild = root->left->left;
-			string tuple;
-			while(commaChild != NULL){
-				tuple += commaChild->value.value + ",";
-				commaChild = commaChild->right;
-			}
-			Token lambdaClosure("lambdaClosure",tuple, ++deltaCounter);
-			lambdaClosure.isTuple = true;
-			currentDelta.push_back(lambdaClosure);
-		}
-		//cout<<currentDelta.size()<<endl;
-		pendingDeltaQueue.push(root->left->right);
-		if(root->right !=NULL)
-					preOrderTraversal(root->right,currentDelta);
-	}else if(root->value.value == "->"){
-		Token betaToken("beta",deltaCounter+1,deltaCounter+2);
-		currentDelta.push_back(betaToken);
-		pendingDeltaQueue.push(root->left->right);
-		pendingDeltaQueue.push(root->left->right->right);
-
-		root->left->right->right = NULL;
-		root->left->right = NULL; //Not sure about this
-		deltaCounter +=2;
-		if(root->left != NULL)
-				preOrderTraversal(root->left,currentDelta);
-		if(root->right !=NULL)
-				preOrderTraversal(root->right,currentDelta);
-	}else{
-		currentDelta.push_back(root->value);
-		if(root->left != NULL)
-				preOrderTraversal(root->left,currentDelta);
-		if(root->right !=NULL)
-					preOrderTraversal(root->right,currentDelta);
-	}
-
-}
-
-
-string CSEMachine::intToString(int intValue){
-	ostringstream oss;
-	oss<<intValue;
-	return oss.str();
-}
-
-vector<string> CSEMachine::split(string inputString, char delimiter){
-	vector<string> result;
-	string::iterator it;
-	string temp;
-	for(it = inputString.begin();it < inputString.end();it++){
-		if(*it == delimiter){
-			result.push_back(temp);
-			temp = string();
-		}else{
-			temp +=*it;
-		}
-	}
-	return result;
-}
-
-bool CSEMachine::notFunction(string identifier){
-	string functions[] = {"Stem","stem","Stern","stern","Print","print","Conc","conc","Istuple","Isinteger","Isfunction","Istruthvalue",
-			"Isdummy","Order","Null"};
-	for(int i=0;i<15;i++){
-		if(identifier == functions[i])
-			return false;
-	}
-	return true;
-}
-
-bool CSEMachine::isParamter(Token currToken){
-	string varName = currToken.value;
-	int temp = currEnv;
-	pair<int,string> keyPair(temp,varName);
-	map<key_pair,Token>::iterator it = paramMap.find(keyPair);
-	while(paramMap.end() == it && temp>=0){
-		temp = envMap[temp];
-		keyPair.first = temp;
-		//cout << "Temp: "<<temp;
-		it = paramMap.find(keyPair);
-	}
-	if(paramMap.end() != it){
-		return true;
-	}else{
-		return false;
-	}
-}
-
-
-string CSEMachine::unescape(const string& s)
-{
-  string res;
-  string::const_iterator it = s.begin();
-  while (it != s.end())
-  {
-    char c = *it++;
-    if (c == '\\' && it != s.end())
-    {
-      switch (*it++) {
-      case '\\': c = '\\'; break;
-      case 'n': c = '\n'; break;
-      case 't': c = '\t'; break;
-      // all other escapes
-      default:
-        // invalid escape sequence - skip it. alternatively you can copy it as is, throw an exception...
-        continue;
-      }
-    }
-    res += c;
-  }
-
-  return res;
-}
-
-void CSEMachine::printTuple(Token t){
-	vector<Token> tupleVector = t.tuple;
-	for(int i=0;i<tupleVector.size();i++){
-		if(i==0){
-			cout<<"(";
-		}else{
-			cout<<", ";
-		}
-		if(tupleVector[i].type == LexicalAnalyzer::STR){
-			cout<< unescape(tupleVector[i].value.substr(1,tupleVector[i].value.size()-2));
-		}else if(tupleVector[i].type == "tuple"){
-			printTuple(tupleVector[i]);
-		}else{
-			cout << tupleVector[i].value;
-		}
-		if(i==tupleVector.size() -1){
-			cout<<")";
-		}
-	}
-
 }
