@@ -151,7 +151,10 @@ void formattedPrint(Token t,std::string dots){
 		cout << dots<<"<STR:"<<t.value<<'>'<<endl;
 	}else if(t.value == "true" or t.value == "false" or t.value == "nil" or t.value== "dummy"){
 		cout << dots<<'<'<<t.value<<'>'<<endl;
-	}else{
+	}else if(t.value == "YSTAR"){
+		cout<<dots<<"<Y*>"<<endl;
+	}
+	else{
 		cout <<dots<<t.value<<endl;
 	}
 }
