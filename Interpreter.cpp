@@ -68,41 +68,43 @@ int main(int argc,char *argv[]) {
 	if(code_string.size() == 0)
 		return 0;
 
-	if(argc == 2){
+	if (argc == 2) {
+    Lexer lexer(code_string);
+    Parser parser(&lexer);
+    parser.parse();
+    TreeNode* root = parser.getTree();
+
+    TreeStandardizer transformer;
+    TreeNode* transformedRoot = transformer.standardizeTree(root);
+
+    CSEMachine machine(transformedRoot);  // ✅ Correct object instantiation
+    machine.evaluateTree();               // ✅ No arguments needed
+	}
+
+	if (st_switch) {
 		Lexer lexer(code_string);
 		Parser parser(&lexer);
 		parser.parse();
 		TreeNode* root = parser.getTree();
 
-		TreeTransformer transformer;
-		TreeNode* transformedRoot = transformer.transformTree(root);
-			
-		CSEMachine machine(transformedRoot);
-		machine.evaluateTree();		
+		TreeStandardizer transformer;
+		TreeNode* transformedRoot = transformer.standardizeTree(root);
+
+		preOrder(transformedRoot, "");
 	}
-	
-	if(st_switch){
+
+	if (ast_switch) {
 		Lexer lexer(code_string);
 		Parser parser(&lexer);
 		parser.parse();
 		TreeNode* root = parser.getTree();
 
-		TreeTransformer transformer;
-		TreeNode* transformedRoot = transformer.transformTree(root);
-			
-		preOrder(transformedRoot, "");	
-	}
-	
-	if(ast_switch){
-		Lexer lexer(code_string);
-		Parser parser(&lexer);
-		parser.parse();
-		TreeNode* root = parser.getTree();
 		preOrder(root, "");
 
-		TreeTransformer transformer;
-		TreeNode* transformedRoot = transformer.transformTree(root);
+		TreeStandardizer transformer;
+		TreeNode* transformedRoot = transformer.standardizeTree(root);
 	}
+
 
 	return 0;
 }

@@ -1,33 +1,50 @@
-/*
- * TreeTransformer.h
- *
- *  Created on: Dec 6, 2011
- *      Author: saurabh
+/**
+ * Abstract Syntax Tree Standardizer Header
+ * 
+ * This header defines the TreeStandardizer class which implements
+ * standardization transformations for functional programming language constructs.
+ * It converts various syntactic forms (let, where, lambda, etc.) into their
+ * standard representations using gamma and lambda abstractions.
+ * The standardizer processes abstract syntax trees by applying specific
+ * transformation rules to each node type.
  */
 
-#ifndef TREETRANSFORMER_H_
-#define TREETRANSFORMER_H_
+#ifndef TREESTANDARDIZER_H_
+#define TREESTANDARDIZER_H_
 
 #include "TreeNode.h"
-void printNodes(TreeNode* node);
-class TreeTransformer {
+
+void displayTreeNodes(TreeNode* node);
+
+class TreeStandardizer {
 private:
-	TreeNode* createNewNode(TreeNode* t);
+    TreeNode* createNodeCopy(TreeNode* sourceNode);
+    
 public:
-	TreeTransformer();
-	virtual ~TreeTransformer();
-	TreeNode* transformTree(TreeNode* root);
-	TreeNode* transformLET(TreeNode* root);
-	TreeNode* transformWHERE(TreeNode* root);
-	TreeNode* transformFCN_FORM(TreeNode* root);
-	TreeNode* transformLAMDA(TreeNode* root);
-	TreeNode* transformWITHIN(TreeNode* root);
-	TreeNode* transformAT(TreeNode* root);
-	TreeNode* transformAND(TreeNode* root);
-	TreeNode* transformREC(TreeNode* root);
-	Token lambda;
-	Token gamma;
+    TreeStandardizer();
+    virtual ~TreeStandardizer();
+    
+    /**
+     * Main transformation entry point - processes entire tree recursively
+     * Applies appropriate standardization rules based on node type
+     */
+    TreeNode* standardizeTree(TreeNode* rootNode);
+    
+    /**
+     * Transformation methods for specific language constructs
+     * Each method handles a particular syntactic form
+     */
+    TreeNode* processLetExpression(TreeNode* letNode);
+    TreeNode* processWhereExpression(TreeNode* whereNode);
+    TreeNode* processLambdaExpression(TreeNode* lambdaNode);
+    TreeNode* processFunctionForm(TreeNode* functionNode);
+    TreeNode* processWithinExpression(TreeNode* withinNode);
+    TreeNode* processAtExpression(TreeNode* atNode);
+    TreeNode* processAndExpression(TreeNode* andNode);
+    TreeNode* processRecExpression(TreeNode* recNode);
+    
+    Token lambdaToken;
+    Token gammaToken;
 };
 
-
-#endif /* TREETRANSFORMER_H_ */
+#endif /* TREESTANDARDIZER_H_ */
