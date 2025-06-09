@@ -1,9 +1,3 @@
-/*
- * CSEMachine.cpp
- *
- *  Created on: Dec 9, 2011
- *      Author: saurabh
- */
 
 #include "CSEMachine.h"
  #include "Lexer.h"
